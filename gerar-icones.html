@@ -1,0 +1,66 @@
+<!DOCTYPE html>
+<html>
+<head><meta charset="UTF-8"><title>Gerar Ícones PWA</title><style>
+body{font-family:system-ui;background:#0A0A0A;color:#fff;padding:20px;text-align:center;}
+canvas{display:none;}
+.icons{margin-top:30px;}
+button{padding:16px 32px;background:#B8962E;color:#000;border:none;border-radius:40px;font-weight:600;cursor:pointer;}
+.preview{display:flex;gap:20px;justify-content:center;margin:20px 0;}
+</style></head>
+<body>
+<h1>🔧 Gerador de Ícones PWA</h1>
+<p>Clique para baixar todos os ícones necessários</p>
+<div class="preview" id="preview"></div>
+<button onclick="gerarTodos()">📥 Baixar Ícones (72, 144, 192, 512)</button>
+<p style="color:#555;margin-top:20px;">Depois coloque-os na pasta <code>/icons/</code></p>
+
+<canvas id="c"></canvas>
+<script>
+const sizes = [72, 144, 192, 512];
+const c = document.getElementById('c');
+const ctx = c.getContext('2d');
+
+function desenharIcone(size) {
+  c.width = size; c.height = size;
+  ctx.fillStyle = '#0A0A0A'; ctx.fillRect(0, 0, size, size);
+  ctx.strokeStyle = '#B8962E'; ctx.lineWidth = size * 0.06;
+  ctx.beginPath(); ctx.arc(size/2, size/2, size*0.3, 0, 2*Math.PI); ctx.stroke();
+  ctx.fillStyle = '#B8962E';
+  ctx.font = `bold ${size*0.2}px 'Playfair Display', serif`;
+  ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+  ctx.fillText('AS', size/2, size/2);
+  
+  const preview = document.getElementById('preview');
+  preview.innerHTML = sizes.map(s => `<div><canvas width="64" height="64" id="prev${s}"></canvas><br>${s}px</div>`).join('');
+  sizes.forEach(s => {
+    const pc = document.getElementById(`prev${s}`);
+    if (pc) {
+      const pctx = pc.getContext('2d');
+      pctx.fillStyle = '#0A0A0A'; pctx.fillRect(0, 0, 64, 64);
+      pctx.strokeStyle = '#B8962E'; pctx.lineWidth = 3;
+      pctx.beginPath(); pctx.arc(32, 32, 18, 0, 2*Math.PI); pctx.stroke();
+      pctx.fillStyle = '#B8962E';
+      pctx.font = 'bold 12px serif';
+      pctx.textAlign = 'center'; pctx.textBaseline = 'middle';
+      pctx.fillText('AS', 32, 32);
+    }
+  });
+}
+
+function gerarTodos() {
+  sizes.forEach(size => {
+    desenharIcone(size);
+    setTimeout(() => {
+      const a = document.createElement('a');
+      a.download = `icon-${size}.png`;
+      a.href = c.toDataURL();
+      a.click();
+    }, 100);
+  });
+  alert('✅ Ícones gerados! Mova-os para a pasta /icons/');
+}
+
+desenharIcone(192);
+</script>
+</body>
+</html>

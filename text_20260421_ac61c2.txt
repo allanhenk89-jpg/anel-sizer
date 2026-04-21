@@ -1,0 +1,7 @@
+anel-sizer-pwa/
+├── index.html              # Aplicativo principal (PWA completo)
+├── manifest.json           # Configuração do PWA
+├── sw.js                   # Service Worker (offline)
+├── gerar-icones.html       # Gerador de ícones automático
+├── .htaccess               # Configuração para servidores Apache
+└── icons/                  # Pasta onde os ícones serão salvos

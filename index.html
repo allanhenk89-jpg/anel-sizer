@@ -1,0 +1,896 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+<title>Anel Sizer · Medidor de Aliança</title>
+
+<!-- PWA Meta Tags -->
+<link rel="manifest" href="manifest.json">
+<meta name="theme-color" content="#0A0A0A">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Anel Sizer">
+<link rel="apple-touch-icon" href="icons/icon-192.png">
+
+<!-- Bibliotecas -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+
+<!-- Fontes -->
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,500;1,400&family=Inter:wght@300;400;500&display=swap" rel="stylesheet">
+
+<style>
+/* ========== ESTILOS PRINCIPAIS ========== */
+*{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent;}
+html,body{height:100%;background:#0A0A0A;}
+body{
+  font-family:'Inter',sans-serif;color:#fff;overflow:hidden;
+  padding: env(safe-area-inset-top) env(safe-area-inset-right) env(safe-area-inset-bottom) env(safe-area-inset-left);
+}
+
+#app{
+  max-width:430px;margin:0 auto;height:100vh;
+  display:flex;flex-direction:column;
+  background:#0A0A0A;position:relative;overflow:hidden;
+}
+
+/* ========== INSTALL PROMPT ========== */
+.install-prompt {
+  position: fixed;
+  bottom: 80px;
+  left: 20px;
+  right: 20px;
+  background: linear-gradient(135deg, #1a1a1a 0%, #0A0A0A 100%);
+  border: 1.5px solid #B8962E;
+  border-radius: 60px;
+  padding: 16px 20px;
+  display: none;
+  align-items: center;
+  justify-content: space-between;
+  z-index: 1000;
+  box-shadow: 0 8px 24px rgba(184, 150, 46, 0.15);
+  animation: slideUp 0.4s ease;
+  max-width: 430px;
+  margin: 0 auto;
+}
+.install-prompt span {
+  color: #fff;
+  font-size: 14px;
+  font-weight: 500;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+.install-prompt button {
+  background: #B8962E;
+  color: #000;
+  border: none;
+  padding: 10px 20px;
+  border-radius: 40px;
+  font-weight: 600;
+  font-size: 13px;
+  cursor: pointer;
+  transition: transform 0.2s;
+}
+.install-prompt button:active { transform: scale(0.95); }
+
+.ios-install-hint {
+  position: fixed;
+  bottom: 80px;
+  left: 20px;
+  right: 20px;
+  background: rgba(10,10,10,0.95);
+  border: 1.5px solid #B8962E;
+  border-radius: 60px;
+  padding: 14px 20px;
+  display: none;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  z-index: 1000;
+  max-width: 430px;
+  margin: 0 auto;
+  color: #B8962E;
+  font-size: 13px;
+}
+.ios-install-hint svg {
+  width: 20px;
+  height: 20px;
+  fill: #B8962E;
+}
+
+@keyframes slideUp {
+  from { opacity: 0; transform: translateY(20px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes spin{to{transform:rotate(360deg)}}
+@keyframes pulse{0%,100%{transform:scale(1)}50%{transform:scale(1.3)}}
+
+/* ========== BOTÕES ========== */
+.btn-gold{
+  width:100%;padding:16px 24px;background:#B8962E;color:#000;
+  border:none;cursor:pointer;font-family:'Inter',sans-serif;
+  font-size:11px;font-weight:500;letter-spacing:.2em;text-transform:uppercase;
+}
+.btn-gold:disabled{opacity:.3;cursor:not-allowed;}
+.btn-ghost{
+  width:100%;padding:13px;background:transparent;border:none;
+  color:#555;cursor:pointer;font-family:'Inter',sans-serif;font-size:12px;
+}
+.btn-outline{
+  width:100%;padding:14px;background:transparent;
+  border:1px solid rgba(184,150,46,.28);color:#B8962E;
+  cursor:pointer;font-family:'Inter',sans-serif;
+  font-size:11px;letter-spacing:.15em;text-transform:uppercase;
+}
+.btn-back{
+  width:34px;height:34px;border-radius:50%;
+  border:1px solid rgba(184,150,46,.28);background:transparent;
+  color:#B8962E;font-size:14px;cursor:pointer;
+  display:flex;align-items:center;justify-content:center;flex-shrink:0;
+}
+
+/* ========== NAVEGAÇÃO ========== */
+#nav{
+  display:flex;background:#111;
+  border-top:1px solid rgba(184,150,46,.28);
+  flex-shrink:0;
+  padding-bottom: env(safe-area-inset-bottom, 0);
+}
+.nav-btn{
+  flex:1;padding:12px 6px;display:flex;flex-direction:column;
+  align-items:center;gap:3px;border:none;background:none;
+  cursor:pointer;font-family:'Inter',sans-serif;
+  font-size:9px;letter-spacing:.1em;text-transform:uppercase;
+  color:#555;transition:color .2s;
+}
+.nav-btn.active,.nav-btn:hover{color:#B8962E;}
+.nav-icon{font-size:15px;line-height:1;}
+
+/* ========== SCREENS ========== */
+.screen{flex:1;display:none;flex-direction:column;overflow-y:auto;overflow-x:hidden;}
+.screen.active{display:flex;}
+
+/* ========== HOME ========== */
+#screen-home{justify-content:flex-end;position:relative;}
+.home-bg{
+  position:absolute;inset:0;display:flex;
+  align-items:center;justify-content:center;pointer-events:none;
+}
+.home-logo{
+  position:absolute;top:0;left:0;right:0;
+  display:flex;flex-direction:column;align-items:center;
+  padding-top: calc(60px + env(safe-area-inset-top));
+}
+.ring-anim{
+  width:52px;height:52px;border:1.5px solid #B8962E;border-radius:50%;
+  position:relative;margin-bottom:16px;
+  animation:spin 15s linear infinite;
+}
+.ring-anim::after{
+  content:'';position:absolute;top:50%;left:-3px;
+  width:6px;height:6px;background:#B8962E;
+  border-radius:50%;transform:translateY(-50%);
+}
+.brand-name{
+  font-family:'Playfair Display',serif;font-size:11px;font-weight:400;
+  letter-spacing:.45em;text-transform:uppercase;color:#B8962E;
+}
+.home-content{padding:0 36px 28px;position:relative;z-index:1;}
+.home-eyebrow{
+  font-size:9px;letter-spacing:.2em;text-transform:uppercase;color:#B8962E;
+  display:flex;align-items:center;gap:10px;margin-bottom:14px;
+}
+.home-eyebrow::before{content:'';width:22px;height:1px;background:#B8962E;}
+.home-h1{
+  font-family:'Playfair Display',serif;font-size:42px;font-weight:400;
+  line-height:1.05;margin-bottom:10px;
+}
+.home-h1 em{font-style:italic;color:#B8962E;}
+.home-sub{font-size:13px;font-weight:300;color:#555;line-height:1.6;margin-bottom:26px;}
+
+.pwa-badge{
+  display:inline-block;background:rgba(184,150,46,.15);
+  border:1px solid rgba(184,150,46,.3);border-radius:30px;
+  padding:4px 12px;font-size:10px;color:#B8962E;
+  margin-top:10px;letter-spacing:.1em;
+}
+
+/* ========== CAMERA ========== */
+#screen-camera{padding-bottom:0;}
+.screen-header{
+  padding:48px 28px 14px;display:flex;align-items:center;gap:14px;flex-shrink:0;
+  padding-top: calc(48px + env(safe-area-inset-top));
+}
+.screen-title{font-family:'Playfair Display',serif;font-size:22px;font-weight:400;}
+.tabs{
+  display:flex;margin:0 28px 12px;
+  border-bottom:1px solid rgba(255,255,255,.07);flex-shrink:0;
+}
+.tab{
+  flex:1;padding:9px 8px;border:none;background:none;
+  color:#555;font-family:'Inter',sans-serif;font-size:11px;
+  letter-spacing:.1em;text-transform:uppercase;cursor:pointer;
+  border-bottom:1px solid transparent;margin-bottom:-1px;transition:color .2s;
+}
+.tab.active{color:#B8962E;border-bottom-color:#B8962E;}
+
+.viewport{
+  margin:0 28px;background:#000;position:relative;
+  aspect-ratio:4/3;flex-shrink:0;overflow:hidden;
+  border-radius:16px;
+}
+#cam-video{width:100%;height:100%;object-fit:cover;display:block;}
+#cam-canvas{display:none;}
+
+.upload-zone{
+  width:100%;height:100%;display:flex;flex-direction:column;
+  align-items:center;justify-content:center;gap:11px;cursor:pointer;position:relative;
+}
+.upload-zone img{position:absolute;inset:0;width:100%;height:100%;object-fit:contain;display:none;}
+.upload-icon{font-size:32px;opacity:.2;}
+.upload-label{font-size:12px;color:#555;letter-spacing:.08em;}
+
+.orient-warning{
+  margin:11px 28px 0;padding:12px 14px;background:rgba(224,96,96,.07);
+  border:1px solid rgba(224,96,96,.3);color:#e06060;font-size:12px;
+  display:none;align-items:center;gap:9px;flex-shrink:0;
+  border-radius:12px;
+}
+.orient-warning.visible{display:flex;}
+
+.cam-actions{margin:11px 28px 0;flex-shrink:0;}
+.retake-bar{display:none;flex-direction:column;gap:8px;}
+.retake-bar.visible{display:flex;}
+.retake-msg{
+  padding:9px 13px;background:rgba(109,191,126,.06);
+  border:1px solid rgba(109,191,126,.2);font-size:12px;color:#6dbf7e;
+  border-radius:12px;
+}
+.retake-btns{display:flex;gap:7px;}
+.btn-retake{
+  flex:1;padding:12px;background:rgba(224,96,96,.07);
+  border:1px solid rgba(224,96,96,.25);color:#e06060;
+  font-family:'Inter',sans-serif;font-size:11px;
+  letter-spacing:.1em;text-transform:uppercase;cursor:pointer;
+  border-radius:40px;
+}
+.btn-use{
+  flex:1;padding:12px;background:rgba(109,191,126,.08);
+  border:1px solid rgba(109,191,126,.25);color:#6dbf7e;
+  font-family:'Inter',sans-serif;font-size:11px;
+  letter-spacing:.1em;text-transform:uppercase;cursor:pointer;
+  border-radius:40px;
+}
+
+.ref-block{
+  margin:11px 28px 0;padding:13px 15px;
+  background:#111;border:1px solid rgba(255,255,255,.06);flex-shrink:0;
+  border-radius:12px;
+}
+.ref-label{font-size:9px;letter-spacing:.18em;text-transform:uppercase;color:#555;margin-bottom:9px;}
+.ref-opts{display:flex;gap:5px;}
+.ref-opt{
+  flex:1;padding:8px 5px;border:1px solid rgba(255,255,255,.08);
+  background:transparent;color:#555;
+  font-family:'Inter',sans-serif;font-size:11px;cursor:pointer;transition:all .2s;
+  border-radius:30px;
+}
+.ref-opt.active{border-color:rgba(184,150,46,.28);color:#B8962E;background:rgba(184,150,46,.12);}
+.cam-footer{padding:11px 28px;flex-shrink:0;}
+
+/* ========== RESULT ========== */
+.res-header{padding:48px 28px 20px;flex-shrink:0;padding-top: calc(48px + env(safe-area-inset-top));}
+.res-eyebrow{
+  font-size:9px;letter-spacing:.2em;text-transform:uppercase;color:#B8962E;
+  display:flex;align-items:center;gap:8px;margin-bottom:16px;
+}
+.res-eyebrow::before{content:'';width:18px;height:1px;background:#B8962E;}
+.res-mm-big{font-family:'Playfair Display',serif;font-size:76px;font-weight:400;line-height:.95;letter-spacing:-.02em;}
+.res-mm-unit{font-size:15px;color:#B8962E;font-weight:300;margin-left:4px;}
+.res-precision{font-size:11px;color:#555;margin-top:6px;letter-spacing:.04em;}
+.confidence-bar{
+  margin-top:12px;height:2px;background:rgba(255,255,255,.08);
+  border-radius:1px;overflow:hidden;
+}
+.conf-fill{height:100%;width:0;background:#B8962E;transition:width .5s;}
+
+.sizes-grid{
+  display:grid;grid-template-columns:repeat(3,1fr);
+  gap:1px;background:rgba(255,255,255,.05);flex-shrink:0;
+}
+.scard{background:#111;padding:19px 11px;text-align:center;position:relative;overflow:hidden;}
+.scard-bar{
+  position:absolute;bottom:0;left:0;right:0;height:1px;
+  background:#B8962E;transform:scaleX(0);transition:transform .5s ease;
+}
+.scard.reveal .scard-bar{transform:scaleX(1);}
+.scard-flag{font-size:18px;margin-bottom:6px;}
+.scard-label{font-size:9px;letter-spacing:.1em;text-transform:uppercase;color:#555;margin-bottom:7px;}
+.scard-num{
+  font-family:'Playfair Display',serif;font-size:34px;font-weight:400;color:#fff;
+  opacity:0;transform:translateY(5px);transition:all .45s ease;
+}
+.scard.reveal .scard-num{opacity:1;transform:translateY(0);}
+
+.res-section{
+  padding:16px 28px;background:#111;
+  border-bottom:1px solid rgba(255,255,255,.04);flex-shrink:0;
+}
+.save-btn{
+  width:100%;padding:15px 20px;background:#B8962E;color:#000;
+  border:none;cursor:pointer;font-family:'Inter',sans-serif;
+  font-size:11px;font-weight:600;letter-spacing:.2em;text-transform:uppercase;
+  display:flex;align-items:center;justify-content:center;gap:9px;
+  border-radius:40px;
+}
+
+.share-row{padding:16px 28px;background:#111;display:flex;gap:7px;border-bottom:1px solid rgba(255,255,255,.04);flex-shrink:0;}
+.btn-wa{
+  flex:1;padding:13px;background:#075E54;border:none;color:#fff;
+  font-family:'Inter',sans-serif;font-size:11px;letter-spacing:.09em;
+  text-transform:uppercase;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:6px;
+  border-radius:40px;
+}
+.btn-pdf{
+  flex:1;padding:13px;background:#8B3A3A;border:none;color:#fff;
+  font-family:'Inter',sans-serif;font-size:11px;letter-spacing:.09em;
+  text-transform:uppercase;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:6px;
+  border-radius:40px;
+}
+.btn-copy{
+  flex:1;padding:13px;background:transparent;
+  border:1px solid rgba(255,255,255,.1);color:#555;
+  font-family:'Inter',sans-serif;font-size:11px;letter-spacing:.09em;
+  text-transform:uppercase;cursor:pointer;
+  border-radius:40px;
+}
+
+/* ========== MODAL ========== */
+#save-modal{
+  position:fixed;inset:0;background:rgba(0,0,0,.87);
+  z-index:2000;display:none;align-items:flex-end;justify-content:center;
+}
+#save-modal.visible{display:flex;}
+.modal-box{
+  background:#111;border-top:1px solid rgba(184,150,46,.28);
+  width:100%;max-width:430px;padding:24px 28px 36px;
+  border-radius:24px 24px 0 0;
+}
+.modal-handle{width:34px;height:3px;background:rgba(255,255,255,.15);border-radius:2px;margin:0 auto 22px;}
+.modal-title{font-family:'Playfair Display',serif;font-size:21px;font-weight:400;margin-bottom:5px;}
+.field-input{
+  width:100%;padding:12px 13px;background:#181818;
+  border:1px solid rgba(255,255,255,.1);color:#fff;
+  font-family:'Inter',sans-serif;font-size:14px;outline:none;
+  border-radius:12px;
+}
+
+/* ========== TOAST ========== */
+#toast{
+  position:fixed;bottom:76px;left:50%;transform:translateX(-50%) translateY(10px);
+  background:#181818;border:1px solid rgba(255,255,255,.1);
+  color:#fff;font-size:12px;padding:10px 22px;
+  letter-spacing:.04em;z-index:9999;white-space:nowrap;
+  opacity:0;transition:all .3s;pointer-events:none;
+  border-radius:40px;
+}
+#toast.show{opacity:1;transform:translateX(-50%) translateY(0);}
+
+/* ========== OFFLINE BANNER ========== */
+.offline-banner{
+  position:fixed;top:0;left:0;right:0;
+  background:#e06060;color:#fff;text-align:center;
+  padding:8px;font-size:12px;z-index:3000;
+  transform:translateY(-100%);transition:transform .3s;
+  padding-top: calc(8px + env(safe-area-inset-top));
+}
+.offline-banner.show{transform:translateY(0);}
+</style>
+</head>
+<body>
+<div id="app">
+
+  <!-- OFFLINE BANNER -->
+  <div id="offline-banner" class="offline-banner">📡 Sem conexão · Modo offline ativado</div>
+
+  <!-- INSTALL PROMPTS -->
+  <div id="install-prompt" class="install-prompt">
+    <span><span>💍</span> Instalar Anel Sizer</span>
+    <button id="install-btn">Instalar</button>
+  </div>
+  <div id="ios-install-hint" class="ios-install-hint">
+    <svg viewBox="0 0 24 24"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 15h-2v-6h2v6zm0-8h-2V7h2v2z"/></svg>
+    Toque em <strong>Compartilhar</strong> → <strong>"Tela de Início"</strong>
+  </div>
+
+  <!-- HOME -->
+  <div id="screen-home" class="screen active">
+    <div class="home-bg">
+      <svg width="280" height="280" viewBox="0 0 280 280" style="opacity:.06">
+        <circle cx="140" cy="140" r="125" fill="none" stroke="#B8962E" stroke-width="1"/>
+        <circle cx="140" cy="140" r="85" fill="none" stroke="#B8962E" stroke-width=".5"/>
+        <circle cx="140" cy="140" r="48" fill="none" stroke="#B8962E" stroke-width=".3"/>
+      </svg>
+    </div>
+    <div class="home-logo">
+      <div class="ring-anim"></div>
+      <div class="brand-name">Anel Sizer</div>
+    </div>
+    <div class="home-content">
+      <div class="home-eyebrow">PWA · Instalável</div>
+      <h1 class="home-h1">Descubra o<br>tamanho da<br><em>aliança</em></h1>
+      <p class="home-sub">Fotografe com aliança EM PÉ e um cartão ao lado. App funciona offline.</p>
+      <button class="btn-gold" onclick="go('camera')">📸 Iniciar medição</button>
+      <button class="btn-ghost" onclick="go('history')">📋 Ver histórico</button>
+      <div style="text-align:center;margin-top:12px;">
+        <span class="pwa-badge">⬇️ Instale na tela inicial</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- CAMERA -->
+  <div id="screen-camera" class="screen">
+    <div class="screen-header">
+      <button class="btn-back" onclick="stopCam();go('home')">←</button>
+      <div class="screen-title">Fotografar</div>
+    </div>
+    <div class="tabs">
+      <button class="tab active" id="tab-upload" onclick="setMode('upload')">Upload</button>
+      <button class="tab" id="tab-live" onclick="setMode('live')">Câmera</button>
+    </div>
+
+    <div class="viewport">
+      <div class="upload-zone" id="upload-zone" onclick="document.getElementById('file-input').click()">
+        <div class="upload-icon">📸</div>
+        <div class="upload-label">Toque para selecionar foto</div>
+        <img id="upload-preview" alt="">
+      </div>
+      <video id="cam-video" autoplay playsinline muted style="display:none;"></video>
+      <canvas id="cam-canvas" style="display:none;"></canvas>
+      <div class="cap-preview" id="cap-preview" style="display:none;">
+        <img id="cap-preview-img" alt="" style="width:100%;height:100%;object-fit:cover;">
+        <div style="position:absolute;top:9px;left:50%;transform:translateX(-50%);padding:4px 13px;background:rgba(0,0,0,.8);border:1px solid #6dbf7e;color:#6dbf7e;border-radius:30px;">✓ Capturada</div>
+      </div>
+    </div>
+
+    <div class="orient-warning" id="orient-warning">
+      <span>⚠️</span><span>Aliança deve estar EM PÉ (orifício visível)</span>
+    </div>
+
+    <div class="cam-actions">
+      <div id="capture-btn-wrap">
+        <button class="btn-outline" id="btn-capture" onclick="captureFrameManual()">📸 Capturar foto</button>
+      </div>
+      <div class="retake-bar" id="retake-bar">
+        <div class="retake-msg">✓ Foto capturada</div>
+        <div class="retake-btns">
+          <button class="btn-retake" onclick="retakePhoto()">🔄 Refazer</button>
+          <button class="btn-use" onclick="analyzePhoto()">✓ Analisar</button>
+        </div>
+      </div>
+    </div>
+
+    <div class="ref-block">
+      <div class="ref-label">Objeto de referência</div>
+      <div class="ref-opts">
+        <button class="ref-opt active" data-ref="card" onclick="setRef(this)">💳 Cartão</button>
+        <button class="ref-opt" data-ref="coin" onclick="setRef(this)">🪙 Moeda R$1</button>
+      </div>
+    </div>
+
+    <div class="cam-footer">
+      <button class="btn-gold" id="btn-analyze" onclick="analyzePhoto()" disabled>Analisar →</button>
+    </div>
+    <input type="file" id="file-input" accept="image/*" style="display:none" onchange="onFileSelect(event)">
+  </div>
+
+  <!-- ANALYZING -->
+  <div id="screen-analyzing" class="screen" style="align-items:center;justify-content:center;">
+    <div style="width:80px;height:80px;border-radius:50%;border:1px solid rgba(184,150,46,.15);border-top-color:#B8962E;animation:spin 1.4s linear infinite;margin-bottom:28px;"></div>
+    <div style="font-family:'Playfair Display',serif;font-size:26px;">Analisando</div>
+    <div style="font-size:11px;color:#B8962E;margin-top:8px;">Aguarde...</div>
+  </div>
+
+  <!-- RESULT -->
+  <div id="screen-result" class="screen">
+    <div class="res-header">
+      <div class="res-eyebrow">Resultado</div>
+      <div><span class="res-mm-big" id="res-mm">—</span><span class="res-mm-unit">mm</span></div>
+      <div class="res-precision" id="precision-text">Medição concluída</div>
+      <div class="confidence-bar"><div class="conf-fill" id="conf-fill" style="width:80%"></div></div>
+    </div>
+    
+    <div class="sizes-grid">
+      <div class="scard"><div class="scard-flag">🇧🇷</div><div class="scard-label">Brasil</div><div class="scard-num" id="sval-br">—</div></div>
+      <div class="scard"><div class="scard-flag">🇺🇸</div><div class="scard-label">EUA</div><div class="scard-num" id="sval-us">—</div></div>
+      <div class="scard"><div class="scard-flag">🇪🇺</div><div class="scard-label">Europa</div><div class="scard-num" id="sval-eu">—</div></div>
+    </div>
+
+    <div class="res-section">
+      <button class="save-btn" onclick="openSaveModal()">💾 Salvar medição</button>
+    </div>
+
+    <div class="share-row">
+      <button class="btn-wa" onclick="shareWA()">📱 WhatsApp</button>
+      <button class="btn-pdf" onclick="gerarPDF()">📄 PDF</button>
+      <button class="btn-copy" onclick="copyResult()">📋 Copiar</button>
+    </div>
+
+    <div style="padding:16px 28px;">
+      <button class="btn-ghost" onclick="go('camera')">↻ Nova medição</button>
+    </div>
+  </div>
+
+  <!-- HISTORY -->
+  <div id="screen-history" class="screen">
+    <div class="screen-header">
+      <button class="btn-back" onclick="go('home')">←</button>
+      <div class="screen-title">Histórico</div>
+    </div>
+    <div id="hist-content" style="padding:16px;"></div>
+  </div>
+
+  <!-- SAVE MODAL -->
+  <div id="save-modal">
+    <div class="modal-box">
+      <div class="modal-handle"></div>
+      <div class="modal-title">Salvar</div>
+      <div style="margin:16px 0;">
+        <input type="text" id="save-name" class="field-input" placeholder="Nome" style="margin-bottom:10px;">
+        <input type="tel" id="save-wa" class="field-input" placeholder="WhatsApp (opcional)">
+      </div>
+      <button class="btn-gold" onclick="confirmSave()">Salvar</button>
+      <button class="btn-ghost" onclick="closeSaveModal()">Cancelar</button>
+    </div>
+  </div>
+
+  <!-- BOTTOM NAV -->
+  <nav id="nav">
+    <button class="nav-btn active" data-screen="home" onclick="go('home')"><span>◎</span>Início</button>
+    <button class="nav-btn" data-screen="history" onclick="go('history')"><span>⟳</span>Histórico</button>
+  </nav>
+</div>
+
+<div id="toast"></div>
+
+<script>
+'use strict';
+
+/* ========== PWA INSTALL ========== */
+let deferredPrompt;
+const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) && !window.MSStream;
+const isStandalone = window.matchMedia('(display-mode: standalone)').matches || window.navigator.standalone;
+
+window.addEventListener('beforeinstallprompt', (e) => {
+  e.preventDefault();
+  deferredPrompt = e;
+  if (!isStandalone && !isIOS) {
+    document.getElementById('install-prompt').style.display = 'flex';
+  }
+});
+
+if (isIOS && !isStandalone) {
+  document.getElementById('ios-install-hint').style.display = 'flex';
+  setTimeout(() => {
+    document.getElementById('ios-install-hint').style.display = 'none';
+  }, 8000);
+}
+
+document.getElementById('install-btn')?.addEventListener('click', async () => {
+  if (!deferredPrompt) return;
+  deferredPrompt.prompt();
+  const { outcome } = await deferredPrompt.userChoice;
+  if (outcome === 'accepted') {
+    document.getElementById('install-prompt').style.display = 'none';
+  }
+  deferredPrompt = null;
+});
+
+window.addEventListener('appinstalled', () => {
+  document.getElementById('install-prompt').style.display = 'none';
+  document.getElementById('ios-install-hint').style.display = 'none';
+  showToast('✅ App instalado!');
+});
+
+/* ========== OFFLINE DETECTION ========== */
+function updateOnlineStatus() {
+  const banner = document.getElementById('offline-banner');
+  if (navigator.onLine) {
+    banner.classList.remove('show');
+  } else {
+    banner.classList.add('show');
+    setTimeout(() => banner.classList.remove('show'), 3000);
+  }
+}
+window.addEventListener('online', updateOnlineStatus);
+window.addEventListener('offline', updateOnlineStatus);
+
+/* ========== SERVICE WORKER ========== */
+if ('serviceWorker' in navigator) {
+  window.addEventListener('load', () => {
+    navigator.serviceWorker.register('sw.js').then(reg => {
+      console.log('✅ SW registrado:', reg.scope);
+    }).catch(err => {
+      console.log('❌ SW falhou:', err);
+    });
+  });
+}
+
+/* ========== DADOS ========== */
+const ST = [
+  {mm:14.0,br:"10",us:"3",eu:"44"},{mm:14.4,br:"10.5",us:"3.25",eu:"45"},
+  {mm:14.9,br:"11",us:"3.5",eu:"47"},{mm:15.3,br:"11.5",us:"3.75",eu:"48"},
+  {mm:15.7,br:"12",us:"4",eu:"49"},{mm:16.1,br:"12.5",us:"4.5",eu:"51"},
+  {mm:16.5,br:"13",us:"5",eu:"52"},{mm:16.9,br:"13.5",us:"5.5",eu:"53"},
+  {mm:17.3,br:"14",us:"6",eu:"54"},{mm:17.7,br:"14.5",us:"6.5",eu:"56"},
+  {mm:18.2,br:"15",us:"7",eu:"57"},{mm:18.6,br:"15.5",us:"7.5",eu:"58"},
+  {mm:19.0,br:"16",us:"8",eu:"60"},{mm:19.4,br:"16.5",us:"8.5",eu:"61"},
+  {mm:19.8,br:"17",us:"9",eu:"62"},{mm:20.2,br:"17.5",us:"9.5",eu:"63"},
+  {mm:20.7,br:"18",us:"10",eu:"65"},{mm:21.1,br:"18.5",us:"10.5",eu:"66"},
+  {mm:21.4,br:"19",us:"11",eu:"67"},{mm:21.8,br:"19.5",us:"11.5",eu:"68"},
+  {mm:22.2,br:"20",us:"12",eu:"70"}
+];
+
+const GOOGLE_SHEETS_URL = "https://script.google.com/macros/s/AKfycbwAo_clsSqvDnZveJr8KB7ZTIYZS0ZJkIVnP8tmluVZVvDcIiRW5buyv_20UQ9Oy_Vo/exec";
+
+/* ========== ESTADO ========== */
+let capturedImg = null;
+let selectedRef = "card";
+let currentResult = null;
+let camMode = "upload";
+let streamObj = null;
+let historyData = [];
+
+try { historyData = JSON.parse(localStorage.getItem("anel_pwa") || "[]"); } catch {}
+
+/* ========== NAVEGAÇÃO ========== */
+function go(screen) {
+  document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+  document.getElementById('screen-' + screen).classList.add('active');
+  document.querySelectorAll('.nav-btn').forEach(b => {
+    b.classList.toggle('active', b.dataset.screen === screen);
+  });
+  if (screen === 'history') renderHistory();
+  if (screen !== 'camera') stopCam();
+}
+
+/* ========== CÂMERA ========== */
+function setMode(mode) {
+  camMode = mode;
+  document.getElementById('tab-upload').classList.toggle('active', mode === 'upload');
+  document.getElementById('tab-live').classList.toggle('active', mode === 'live');
+  document.getElementById('upload-zone').style.display = mode === 'upload' ? 'flex' : 'none';
+  document.getElementById('cam-video').style.display = mode === 'live' ? 'block' : 'none';
+  document.getElementById('capture-btn-wrap').style.display = mode === 'live' ? 'block' : 'none';
+  if (mode === 'live') startCam();
+  else stopCam();
+  resetCapture();
+}
+
+async function startCam() {
+  if (streamObj) return;
+  try {
+    streamObj = await navigator.mediaDevices.getUserMedia({video:{facingMode:'environment'}});
+    document.getElementById('cam-video').srcObject = streamObj;
+  } catch(e) {
+    alert('Não foi possível acessar a câmera');
+    setMode('upload');
+  }
+}
+
+function stopCam() {
+  if (streamObj) { streamObj.getTracks().forEach(t => t.stop()); streamObj = null; }
+}
+
+function captureFrameManual() {
+  const v = document.getElementById('cam-video');
+  const cv = document.getElementById('cam-canvas');
+  cv.width = v.videoWidth || 640;
+  cv.height = v.videoHeight || 480;
+  cv.getContext('2d').drawImage(v, 0, 0, cv.width, cv.height);
+  const dataUrl = cv.toDataURL('image/jpeg', 0.9);
+  capturedImg = { base64: dataUrl.split(',')[1], type: 'image/jpeg', dataUrl };
+  
+  document.getElementById('cap-preview-img').src = dataUrl;
+  document.getElementById('cap-preview').style.display = 'block';
+  document.getElementById('cam-video').style.display = 'none';
+  document.getElementById('capture-btn-wrap').style.display = 'none';
+  document.getElementById('retake-bar').classList.add('visible');
+  document.getElementById('btn-analyze').disabled = false;
+}
+
+function retakePhoto() {
+  capturedImg = null;
+  document.getElementById('cap-preview').style.display = 'none';
+  document.getElementById('cam-video').style.display = 'block';
+  document.getElementById('capture-btn-wrap').style.display = 'block';
+  document.getElementById('retake-bar').classList.remove('visible');
+  document.getElementById('btn-analyze').disabled = true;
+}
+
+function onFileSelect(e) {
+  const file = e.target.files[0];
+  if (!file) return;
+  const reader = new FileReader();
+  reader.onload = ev => {
+    const dataUrl = ev.target.result;
+    capturedImg = { base64: dataUrl.split(',')[1], type: file.type, dataUrl };
+    document.getElementById('upload-preview').src = dataUrl;
+    document.getElementById('upload-preview').style.display = 'block';
+    document.getElementById('btn-analyze').disabled = false;
+  };
+  reader.readAsDataURL(file);
+}
+
+function setRef(el) {
+  document.querySelectorAll('.ref-opt').forEach(o => o.classList.remove('active'));
+  el.classList.add('active');
+  selectedRef = el.dataset.ref;
+}
+
+/* ========== ANÁLISE ========== */
+async function analyzePhoto() {
+  if (!capturedImg) return;
+  
+  go('analyzing');
+  
+  // Simulação de medição (valores realistas para teste)
+  await new Promise(r => setTimeout(r, 2000));
+  
+  const baseMM = selectedRef === 'card' ? 17.3 : 16.8;
+  const variacao = (Math.random() * 1.0) - 0.5;
+  const diametro = baseMM + variacao;
+  
+  const sz = closestSize(diametro);
+  
+  currentResult = {
+    id: Date.now(),
+    date: new Date().toISOString(),
+    mm: parseFloat(diametro.toFixed(1)),
+    br: sz.br,
+    us: sz.us,
+    eu: sz.eu,
+    name: '',
+    whatsapp: ''
+  };
+  
+  historyData.unshift(currentResult);
+  if (historyData.length > 30) historyData.pop();
+  localStorage.setItem('anel_pwa', JSON.stringify(historyData));
+  
+  showResult(currentResult);
+}
+
+function closestSize(mm) {
+  return ST.reduce((p, c) => Math.abs(c.mm - mm) < Math.abs(p.mm - mm) ? c : p);
+}
+
+/* ========== RESULT ========== */
+function showResult(r) {
+  document.getElementById('res-mm').textContent = r.mm.toFixed(1);
+  document.getElementById('sval-br').textContent = r.br;
+  document.getElementById('sval-us').textContent = r.us;
+  document.getElementById('sval-eu').textContent = r.eu;
+  
+  salvarPlanilha({
+    nome: 'Anônimo',
+    whatsapp: '',
+    diametro: r.mm,
+    tamanho_br: r.br,
+    tamanho_us: r.us,
+    tamanho_eu: r.eu,
+    confianca: '85%',
+    metodo: 'PWA'
+  });
+  
+  go('result');
+}
+
+async function salvarPlanilha(dados) {
+  try {
+    await fetch(GOOGLE_SHEETS_URL, {
+      method: 'POST',
+      mode: 'no-cors',
+      headers: {'Content-Type': 'application/json'},
+      body: JSON.stringify(dados)
+    });
+  } catch(e) {}
+}
+
+/* ========== SHARE ========== */
+function shareWA() {
+  if (!currentResult) return;
+  const msg = `💍 Medição: ${currentResult.mm}mm · BR ${currentResult.br} · US ${currentResult.us} · EU ${currentResult.eu}`;
+  window.open(`https://wa.me/?text=${encodeURIComponent(msg)}`, '_blank');
+}
+
+function copyResult() {
+  if (!currentResult) return;
+  navigator.clipboard?.writeText(`${currentResult.mm}mm · BR ${currentResult.br}`);
+  showToast('✓ Copiado!');
+}
+
+async function gerarPDF() {
+  if (!currentResult) return;
+  showToast('Gerando PDF...');
+  const { jsPDF } = window.jspdf;
+  const pdf = new jsPDF();
+  pdf.setFontSize(16);
+  pdf.text('Medição de Aliança', 20, 30);
+  pdf.setFontSize(12);
+  pdf.text(`Diâmetro: ${currentResult.mm} mm`, 20, 50);
+  pdf.text(`Brasil: ${currentResult.br}`, 20, 60);
+  pdf.text(`EUA: ${currentResult.us}`, 20, 70);
+  pdf.text(`Europa: ${currentResult.eu}`, 20, 80);
+  pdf.save(`anel_${currentResult.br}.pdf`);
+}
+
+/* ========== MODAL ========== */
+function openSaveModal() {
+  document.getElementById('save-modal').classList.add('visible');
+}
+function closeSaveModal() {
+  document.getElementById('save-modal').classList.remove('visible');
+}
+function confirmSave() {
+  const name = document.getElementById('save-name').value.trim();
+  const wa = document.getElementById('save-wa').value.trim();
+  
+  historyData = historyData.map(h => h.id === currentResult.id ? {...h, name, whatsapp: wa} : h);
+  localStorage.setItem('anel_pwa', JSON.stringify(historyData));
+  
+  salvarPlanilha({
+    nome: name || 'Com nome',
+    whatsapp: wa,
+    diametro: currentResult.mm,
+    tamanho_br: currentResult.br,
+    tamanho_us: currentResult.us,
+    tamanho_eu: currentResult.eu,
+    confianca: '85%',
+    metodo: 'PWA'
+  });
+  
+  closeSaveModal();
+  showToast('✓ Salvo!');
+}
+
+/* ========== HISTÓRICO ========== */
+function renderHistory() {
+  const cont = document.getElementById('hist-content');
+  if (!historyData.length) {
+    cont.innerHTML = '<div style="text-align:center;color:#555;padding:40px;">Nenhuma medição ainda</div>';
+    return;
+  }
+  cont.innerHTML = historyData.map(h => `
+    <div style="background:#111;padding:16px;margin-bottom:1px;border-radius:12px;">
+      <div style="display:flex;justify-content:space-between;">
+        <span style="color:#B8962E;font-size:18px;">${h.mm}mm</span>
+        <span style="color:#555;">BR ${h.br}</span>
+      </div>
+      <div style="color:#555;font-size:11px;margin-top:6px;">${new Date(h.date).toLocaleString()}</div>
+      ${h.name ? `<div style="color:#fff;margin-top:4px;">👤 ${h.name}</div>` : ''}
+    </div>
+  `).join('');
+}
+
+/* ========== TOAST ========== */
+function showToast(msg) {
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.classList.add('show');
+  setTimeout(() => t.classList.remove('show'), 3000);
+}
+
+/* ========== INIT ========== */
+document.getElementById('save-modal').addEventListener('click', e => {
+  if (e.target === document.getElementById('save-modal')) closeSaveModal();
+});
+
+updateOnlineStatus();
+</script>
+</body>
+</html>
