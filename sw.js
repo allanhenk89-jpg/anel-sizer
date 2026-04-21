@@ -1,9 +1,9 @@
 const CACHE = 'anel-sizer-v1';
 const urls = [
-  '/', '/index.html', '/manifest.json',
-  'https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,500;1,400&family=Inter:wght@300;400;500&display=swap',
-  'https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js',
-  'https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js'
+  '/anel-sizer/',
+  '/anel-sizer/index.html',
+  '/anel-sizer/manifest.json',
+  // ... resto das URLs
 ];
 
 self.addEventListener('install', e => {
